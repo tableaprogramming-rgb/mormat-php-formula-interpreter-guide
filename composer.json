@@ -1,0 +1,19 @@
+{
+    "name": "php-formula-interpreter-guide",
+    "description": "Usage guide and examples for mormat/php-formula-interpreter with custom IF function",
+    "type": "project",
+    "require": {
+        "php": "^7.4",
+        "mormat/php-formula-interpreter": "^2.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "FormulaParser\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "FormulaParser\\Examples\\": "examples/"
+        }
+    }
+}
