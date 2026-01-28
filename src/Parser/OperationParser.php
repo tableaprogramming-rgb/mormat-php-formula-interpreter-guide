@@ -60,18 +60,47 @@ class OperationParser implements ParserInterface
     protected function extractOperands($expression, $operator)
     {
         $positions = $this->findOperatorPositions($expression, $operator);
-        foreach ($positions as $position) {
+        $positionsArray = iterator_to_array($positions);
+
+        // For left-associative operators, use the last occurrence
+        // For right-associative operators, use the first occurrence
+        if ($this->isLeftAssociative($operator)) {
+            $positionsArray = array_reverse($positionsArray);
+        }
+
+        foreach ($positionsArray as $position) {
             $left  = substr($expression, 0, $position);
             $right = substr($expression, $position + strlen($operator));
 
             if (!$this->areOperandsValid($operator, $left, $right)) {
                 continue;
             }
-            
+
             return [$left, $right];
         }
-        
+
         return null;
+    }
+
+    protected function isLeftAssociative($operator): bool
+    {
+        // Left-associative operators: a op b op c = (a op b) op c
+        $leftAssociativeOperators = [
+            self::ADD_OPERATOR,
+            self::SUBSTRACT_OPERATOR,
+            self::MULTIPLY_OPERATOR,
+            self::DIVIDE_OPERATOR,
+            self::AND_OPERATOR,
+            self::OR_OPERATOR,
+            self::EQUAL_OPERATOR,
+            self::LOWER_THAN_OPERATOR,
+            self::GREATER_THAN_OPERATOR,
+            self::LOWER_OR_EQUAL_OPERATOR,
+            self::GREATER_OR_EQUAL_OPERATOR,
+            self::IN_OPERATOR,
+        ];
+
+        return in_array($operator, $leftAssociativeOperators);
     }
           
     protected function findOperatorPositions($expression, $operator)
