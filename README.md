@@ -141,6 +141,9 @@ All variables use **snake_case** (lowercase with underscores):
 ### ✓ Safe Formula Evaluation
 No use of dangerous `eval()` function. Formulas are parsed and compiled for secure execution.
 
+### ✓ Correct Operator Associativity (Fixed Jan 2026)
+All arithmetic and logical operators now correctly evaluate **left-to-right**, ensuring accurate calculations for chained operations like deductions: `gross - tax - sss - insurance - loans`
+
 ### ✓ Support for Multiple Data Types
 - Numbers (integers and floats)
 - Strings (for status, employee types)
@@ -148,10 +151,10 @@ No use of dangerous `eval()` function. Formulas are parsed and compiled for secu
 - Booleans (from comparisons)
 
 ### ✓ Rich Operator Support
-- Arithmetic: `+`, `-`, `*`, `/`
-- Logical: `and`, `or`, `not`
-- Comparison: `>`, `<`, `>=`, `<=`, `=`
-- Membership: `in`
+- Arithmetic: `+`, `-`, `*`, `/` (left-associative ✓)
+- Logical: `and`, `or`, `not` (left-associative ✓)
+- Comparison: `>`, `<`, `>=`, `<=`, `=` (left-associative ✓)
+- Membership: `in` (left-associative ✓)
 
 ### ✓ Built-in Functions
 - Math: `sqrt()`, `pow()`, `modulo()`, `pi()`, `sin()`, `cos()`
@@ -163,6 +166,68 @@ No use of dangerous `eval()` function. Formulas are parsed and compiled for secu
 - **Nested IF**: `IF(cond1, val1, IF(cond2, val2, val3))`
 - **Flexible return types** (numeric, string, mixed)
 - **Numeric conditions** (0 = false, non-zero = true)
+
+## Operator Precedence & Associativity
+
+### Operator Precedence (High → Low)
+Operators are evaluated in this order:
+
+| Priority | Operators | Type | Associativity |
+|----------|-----------|------|----------------|
+| **Highest** | `(`, `)` | Parentheses | N/A |
+| **5** | `*`, `/` | Multiplication, Division | **Left** ←→ |
+| **4** | `+`, `-` | Addition, Subtraction | **Left** ←→ |
+| **3** | `<`, `>`, `<=`, `>=`, `=` | Comparison | **Left** ←→ |
+| **2** | `and` | Logical AND | **Left** ←→ |
+| **1** | `or` | Logical OR | **Left** ←→ |
+| **1** | `in` | Array membership | **Left** ←→ |
+
+### Left-Associativity Explained
+
+All operators evaluate **left-to-right**. This means:
+
+```php
+// Subtraction example
+$formula = 'a - b - c';
+// Evaluates as: (a - b) - c  ←→ LEFT-TO-RIGHT
+// NOT as: a - (b - c)  (which would be wrong)
+
+// With actual values:
+// 100 - 50 - 25 = (100 - 50) - 25 = 50 - 25 = 25 ✓
+// NOT: 100 - (50 - 25) = 100 - 25 = 75 ✗
+```
+
+This is especially important for payroll deduction chains:
+
+```php
+// Taxable Income Calculation (Left-to-Right)
+$formula = 'gross_pay - sss - hdmfpag_ibig - philhealth';
+
+// Example with real values:
+// 38,160 - 1,750 - 100 - 954
+// = ((38,160 - 1,750) - 100) - 954
+// = (36,410 - 100) - 954
+// = 36,310 - 954
+// = 35,356 ✓
+
+// If evaluated wrong (right-to-left):
+// 38,160 - (1,750 - (100 - 954))
+// = 38,160 - (1,750 - (-854))
+// = 38,160 - 2,604
+// = 35,556 ✗ (WRONG - $200 difference!)
+```
+
+### Using Parentheses for Clarity
+
+Even though operations evaluate left-to-right by default, use parentheses to make your intent clear:
+
+```php
+// Good practice - explicit
+$formula = '((base_salary + allowances) - deductions)';
+
+// Also correct - but less clear
+$formula = 'base_salary + allowances - deductions';
+```
 
 ## Payroll Formula Examples
 
@@ -400,6 +465,14 @@ $executable->run(['hours' => '40', 'rate' => '170.45']);  // May have issues
 
 ---
 
-**Last Updated**: 2025-12-17
+**Last Updated**: 2026-01-28
+
+## 🔴 Critical Fix - January 2026
+
+**Operator Associativity Fix**: The interpreter now correctly evaluates chained arithmetic operations from **left-to-right** instead of right-to-left. This fixes critical calculation errors in payroll deduction formulas.
+
+- **Impact**: Deduction chains like `gross - tax - sss - insurance` now compute correctly
+- **Example Fix**: Formula `38160 - 1750 - 100 - 954` now returns `35,356` (correct) instead of `35,556` (was wrong by $200)
+- **For Details**: See [OPERATOR_ASSOCIATIVITY_FIX_REPORT.md](OPERATOR_ASSOCIATIVITY_FIX_REPORT.md)
 
 For comprehensive documentation, see [USAGE_GUIDE.md](USAGE_GUIDE.md)

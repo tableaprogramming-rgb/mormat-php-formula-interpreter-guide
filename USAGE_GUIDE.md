@@ -2,14 +2,17 @@
 
 A comprehensive guide for using the `mormat/php-formula-interpreter` package for payroll and Human Resource Management System (HRMS) calculations.
 
+> **🔴 CRITICAL FIX - January 2026**: The interpreter now correctly evaluates chained arithmetic operations from **left-to-right**. This fixes calculation errors in payroll deduction formulas. For example, `38160 - 1750 - 100 - 954` now correctly returns `35,356` instead of the previously incorrect `35,556` (a $200 difference!). See [Operator Precedence & Associativity](#operator-precedence--associativity) section below for details and best practices.
+
 ## Table of Contents
 1. [Installation](#installation)
 2. [Basic Concepts](#basic-concepts)
-3. [Basic Payroll Examples](#basic-payroll-examples)
-4. [Custom Functions Guide](#custom-functions-guide)
-5. [Custom IF Function Implementation](#custom-if-function-implementation)
-6. [Complete Payroll Scenarios](#complete-payroll-scenarios)
-7. [Best Practices](#best-practices)
+3. [Operator Precedence & Associativity](#operator-precedence--associativity)
+4. [Basic Payroll Examples](#basic-payroll-examples)
+5. [Custom Functions Guide](#custom-functions-guide)
+6. [Custom IF Function Implementation](#custom-if-function-implementation)
+7. [Complete Payroll Scenarios](#complete-payroll-scenarios)
+8. [Best Practices](#best-practices)
 
 ---
 
@@ -77,6 +80,132 @@ All variables use **snake_case** (lowercase with underscores):
 ✗ baseSalary (camelCase - don't use)
 ✗ Basic_Salary (PascalCase - don't use)
 ✗ basic salary (spaces - don't use)
+```
+
+---
+
+## Operator Precedence & Associativity
+
+### Overview
+
+Understanding operator precedence and associativity is critical for writing correct payroll formulas. **Precedence** determines which operators are evaluated first, and **associativity** determines the order when operators have the same precedence.
+
+### Operator Precedence Table
+
+| Priority | Operators | Meaning | Associativity |
+|----------|-----------|---------|----------------|
+| **Highest** | `( )` | Parentheses (force evaluation order) | N/A |
+| **5** | `*`, `/` | Multiplication, Division | **Left** (←→) |
+| **4** | `+`, `-` | Addition, Subtraction | **Left** (←→) |
+| **3** | `<`, `>`, `<=`, `>=`, `=` | Comparison operators | **Left** (←→) |
+| **2** | `and` | Logical AND | **Left** (←→) |
+| **Lowest** | `or`, `in` | Logical OR, Array membership | **Left** (←→) |
+
+### Left-Associativity: The Critical Detail
+
+All operators in this interpreter are **left-associative**, meaning they evaluate from **left-to-right**. This is crucial for accurate calculations.
+
+#### Example: Subtraction (Critical for Payroll Deductions)
+
+```php
+// Formula with multiple subtractions
+$formula = 'a - b - c';
+
+// LEFT-ASSOCIATIVE (Correct ✓):
+// (a - b) - c  →  Evaluates left-to-right
+// Example: 100 - 50 - 25 = (100 - 50) - 25 = 50 - 25 = 25 ✓
+
+// RIGHT-ASSOCIATIVE (Wrong ✗):
+// a - (b - c)  →  Evaluates right-to-left
+// Example: 100 - (50 - 25) = 100 - 25 = 75 ✗ (INCORRECT!)
+```
+
+#### Real-World Example: Taxable Income Calculation
+
+```php
+// Payroll Formula - Calculate taxable income by deducting contributions
+$formula = 'gross_pay - sss - hdmfpag_ibig - philhealth';
+
+// With employee data:
+$data = [
+    'gross_pay' => 38160,
+    'sss' => 1750,
+    'hdmfpag_ibig' => 100,
+    'philhealth' => 954,
+];
+
+// Evaluation (LEFT-TO-RIGHT):
+// Step 1: 38160 - 1750 = 36410
+// Step 2: 36410 - 100 = 36310
+// Step 3: 36310 - 954 = 35356 ✓ CORRECT
+
+// If it was RIGHT-TO-LEFT (would be wrong):
+// 38160 - (1750 - (100 - 954))
+// = 38160 - (1750 - (-854))
+// = 38160 - 2604
+// = 35556 ✗ WRONG (difference of $200!)
+```
+
+### Precedence in Action: Mixed Operators
+
+```php
+// Formula with mixed operators
+$formula = 'a + b * c - d';
+
+// Evaluation order (by precedence):
+// 1. Multiplication first (highest priority): b * c
+// 2. Addition (next priority): a + (result of b*c)
+// 3. Subtraction (same as addition, left-to-right): (a + b*c) - d
+
+// Example: 2 + 3 * 4 - 5
+// Step 1: 3 * 4 = 12
+// Step 2: 2 + 12 = 14 (left-to-right)
+// Step 3: 14 - 5 = 9 (left-to-right)
+// Result: 9 ✓
+```
+
+### Using Parentheses for Clarity and Control
+
+Even though the interpreter follows standard mathematical precedence, use parentheses to make your intent explicit:
+
+```php
+// Without parentheses (relies on precedence rules)
+$formula = 'gross_pay - sss - philhealth * multiplier';
+
+// With parentheses (crystal clear)
+$formula = '(gross_pay - sss) - (philhealth * multiplier)';
+
+// Different parentheses = different result!
+$formula = 'gross_pay - (sss - (philhealth * multiplier))';  // Don't do this!
+```
+
+### Best Practice: Always Use Parentheses for Complex Formulas
+
+```php
+// ✓ Good - Clear intent
+$formula = '((gross_pay - deductions) * tax_rate) + benefits';
+
+// ✓ Also good - Organized
+$formula = '(gross_pay - (sss + philhealth + pagibig)) * tax_multiplier';
+
+// ✗ Avoid - Relies on developer knowing precedence rules
+$formula = 'gross_pay - sss - philhealth - pagibig * tax_multiplier';
+```
+
+### Comparison Chains (Advanced)
+
+```php
+// Comparison chains evaluate left-to-right
+$formula = 'a < b < c';
+
+// Evaluation:
+// Step 1: a < b → returns boolean (true/false)
+// Step 2: boolean < c → converts boolean to 0 or 1, then compares
+
+// Example: 1 < 2 < 3
+// Step 1: 1 < 2 = true (converted to 1)
+// Step 2: 1 < 3 = true
+// Result: true ✓
 ```
 
 ---
