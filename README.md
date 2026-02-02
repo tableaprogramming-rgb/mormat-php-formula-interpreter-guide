@@ -125,6 +125,35 @@ You can use as many parentheses as you like.
 2 * (2 * (3 + 2 * (3 + 2)) + 2)
 ```
 
+### Operator Associativity
+
+All arithmetic operators (`+`, `-`, `*`, `/`), comparison operators (`=`, `<`, `>`, `<=`, `>=`, `in`), and logical operators (`and`, `or`) are **left-associative**. This means when multiple operators of the same precedence level are used, they are evaluated from left to right.
+
+**Example:**
+```
+a - b - c  evaluates as  (a - b) - c
+```
+
+For instance:
+```
+38160 - 1750 - 100 - 954
+= ((38160 - 1750) - 100) - 954
+= (36410 - 100) - 954
+= 36310 - 954
+= 35356
+```
+
+This also applies to mixed operators of the same precedence:
+```
+(a + b) * c - d - e
+= ((a + b) * c - d) - e
+```
+
+Use parentheses to override the default left-to-right evaluation if needed:
+```
+a - (b - c)  // right-to-left
+```
+
 ## Using variables
 
 A variable is just a word inside your formula like this :
